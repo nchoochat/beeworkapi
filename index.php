@@ -3,7 +3,7 @@
 //declare(strict_types=1);
 require __DIR__ . "/inc/config.php";
 
-$uri_root = "/hakao";
+$uri_root = "/" . WEB_ROOT ;
 $dir_root = __DIR__;
 
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
@@ -17,7 +17,7 @@ if (!isset($uri[2]) || !isset($uri[3])) {
 
 $realm = 'Restricted area';
 switch (strtolower($uri[2])) {
-    case 'user':
+    case 'user':        
         if (!empty($_SERVER['PHP_AUTH_DIGEST'])) {
             require PROJECT_ROOT_PATH . "/Controller/Api/UserController.php";
             $objFeedController = new UserController();

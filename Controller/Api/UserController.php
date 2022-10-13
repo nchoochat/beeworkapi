@@ -1,5 +1,6 @@
 <?php
 // include the use model file
+
 require_once PROJECT_ROOT_PATH . "/Model/UserModel.php";
 
 class UserController extends BaseController
