@@ -117,13 +117,16 @@ class UserController extends BaseController
                 //UPDATE employee SET Pwd = '%s' WHERE EmployeeId = '%s'
                 if ($database->executeNonQuery(sprintf($sql, $notifyToken, $eId)) > 0) {
                     $result->status = 'success';
+                    $result->error = '';
                 } else {
                     $result->status = 'failed';
+                    $result->error = '';
                 }
             }
-        } catch (\Throwable $th) {
+        } catch (Exception $th) {
             //throw $th;
-            $result->status = 'failed';
+            $result->status = 'error';
+            $result->error = $th->getMessage();
         }
         $this->send(
             json_encode($result, JSON_UNESCAPED_UNICODE),

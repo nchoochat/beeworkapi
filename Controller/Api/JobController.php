@@ -166,32 +166,6 @@ class JobController extends BaseController
                     return $element['NotifyDate'] == '';
                 }, ARRAY_FILTER_USE_BOTH);
 
-                // $jobList = array_filter($jobList, static function ($element) {
-                //     $is_notify = false;
-                //     if (file_exists(WEB_PATH_ATTACH_FILE . "/" . $element["JobId"] . "/" . $_GET["eId"] . ".txt")) {
-                //         $filePath = WEB_PATH_ATTACH_FILE . "/" . $element["JobId"];
-                //         $fileName = sprintf('%s.txt', $_GET["eId"]);
-                //         $contentArray = file("${filePath}/${fileName}", FILE_IGNORE_NEW_LINES);
-                //         if (count($contentArray) >= 2) {
-                //             $notifyArray = explode("=", $contentArray[0]);
-                //             if (count($notifyArray) >= 2) {
-                //                 if ($notifyArray[0] == "notify_date" && $notifyArray[1] != "") {
-                //                     $is_notify = true;
-                //                 } else {
-                //                     $date = new DateTime();
-                //                     $notify = "notify_date=" . $date->format('Y-m-d H:i:s');
-                //                     $filehandler = fopen("${filePath}/${fileName}", 'r+');
-                //                     $contents = $notify . PHP_EOL . $contentArray[1];
-                //                     fwrite($filehandler, $contents);
-                //                     fclose($filehandler);
-                //                 }
-                //             }
-                //         }
-                //         return !$is_notify;
-                //     } else {
-                //         return false;
-                //     }
-                // });
                 $this->send(
                     json_encode(array_values($jobList), JSON_UNESCAPED_UNICODE),
                     array('Content-Type: application/json; charset=utf-8', $this->_httpStatusCode["200"])
@@ -199,6 +173,86 @@ class JobController extends BaseController
             } catch (\Throwable $th) {
                 throw $th;
             }
+        }
+    }
+
+    public function sendNotify()
+    {
+        try {
+            $filename = $GLOBALS['dir_root'] . "/SQL/NotifyList.sql";
+            $array = explode("\n", file_get_contents($filename));
+            $sql = (implode(chr(10), $array));
+            $database = new DatabaseController();
+            $jobList = $database->execut($sql);
+            $date = new DateTime();
+            for ($i = 0; $i < count($jobList); $i++) {
+                $el = $jobList[$i];
+                $this->prepareInfo($el["EmployeeId"], $el["JobId"], $el['UpdateDate']);
+                if (file_exists(WEB_PATH_ATTACH_FILE . "/" . $el["JobId"] . "/" . $el["EmployeeId"] . ".txt")) {
+                    $filePath = WEB_PATH_ATTACH_FILE . "/" . $el["JobId"];
+                    $fileName = sprintf('%s.txt', $el["EmployeeId"],);
+                    //$content = file("${filePath}/${fileName}", FILE_IGNORE_NEW_LINES);
+                    $content = file_get_contents("${filePath}/${fileName}");
+                    
+                    if ($content) {
+                        $jobInfo = json_decode($content);
+                        if ($jobInfo->notify_date == "") {
+                            //-- New Job
+                            $el["NotifyType"] = "New Job";
+                        } else if ($jobInfo->notify_date <= $el["UpdateDate"]) {
+                            // -- Update Job
+                            $el["NotifyType"] = "Update Job";
+                        }
+                        if ($el["NotifyType"] != "") {
+                            $url = 'https://fcm.googleapis.com/fcm/send';
+
+                            $header = "";
+                            $header = $header . "Content-Type: application/json\r\n";
+                            $header = $header . "Authorization: key=AAAAI4Uphw4:APA91bGKLfMRuJZvbdNCWjVxsnDzLjSAJi93_KYsyhAGZ5VlumSyJFT3ooQZWoJD4sHdu7up_YbKEGkpE0suS3fp35Sqn07U77IiVS1D4s4n9HwzNWO6NedhIq_zaveTesN0zUxxO9LJ";
+
+                            //$data = array('key1' => 'value1', 'key2' => 'value2');
+                            $fcm = new stdClass();
+                            $notification = new stdClass();
+                            $notification->title = $el["NotifyType"];
+                            $notification->body = $el["CustomerName"] . "\n" . $el["Description"];
+                            $fcm->to = $el["NotifyToken"];
+                            $fcm->notification = $notification;
+                            $options = array(
+                                'http' => array(
+                                    'header'  => $header,
+                                    'method'  => 'POST',
+                                    'content' => json_encode($fcm)
+                                )
+                            );
+                            $context  = stream_context_create($options);
+                            $result = file_get_contents($url, false, $context);
+                            if($result){
+                                $jobInfo->notify_date = $date->format('Y-m-d H:i:s');
+                            }
+                            print_r($result . "</br >");
+                            sleep(1); // Wait 1 second 
+                        }
+                        $jobInfo->update_date = $el["UpdateDate"];
+                        $filehandler = fopen("${filePath}\\${fileName}", 'w');
+                        $contents = json_encode($jobInfo);
+                        fwrite($filehandler, $contents);
+                        fclose($filehandler);
+
+                        
+                    }
+                }
+            }
+
+            // $jobList = array_filter($jobList, function ($element, $index) {
+            //     return $element['NotifyDate'] == '';
+            // }, ARRAY_FILTER_USE_BOTH);
+
+            // $this->send(
+            //     json_encode(array_values($jobList), JSON_UNESCAPED_UNICODE),
+            //     array('Content-Type: application/json; charset=utf-8', $this->_httpStatusCode["200"])
+            // );
+        } catch (\Throwable $th) {
+            throw $th;
         }
     }
 
@@ -211,7 +265,7 @@ class JobController extends BaseController
                 $sql = (implode(chr(10), $array));
                 $database = new DatabaseController();
                 $jobList = $database->execut(sprintf($sql, $_GET["eId"]));
-                $date = new DateTime();
+                //$date = new DateTime();
                 for ($i = 0; $i < count($jobList); $i++) {
                     $el = $jobList[$i];
                     $this->prepareInfo($_GET["eId"], $el["JobId"], $el['UpdateDate']);
@@ -242,23 +296,20 @@ class JobController extends BaseController
 
     public function accept()
     {
-        $jId = $_GET["jId"];
-        //$eId = $_GET["eId"];
-
-        if (!file_exists(WEB_PATH_ATTACH_FILE . "/" . $jId)) {
-            mkdir(WEB_PATH_ATTACH_FILE . "/" . $jId);
+        if (!file_exists(WEB_PATH_ATTACH_FILE . "/" . $_GET["jId"])) {
+            mkdir(WEB_PATH_ATTACH_FILE . "/" . $_GET["jId"]);
         }
+        $this->prepareInfo($_GET["eId"], $_GET["jId"], '');
         $date = new DateTime();
         if (file_exists(WEB_PATH_ATTACH_FILE . "/" . $_GET["jId"]) . "/" . $_GET["eId"] . ".txt") {
             $filePath = WEB_PATH_ATTACH_FILE . "/" . $_GET["jId"];
             $fileName = sprintf('%s.txt', $_GET["eId"]);
-            $contentArray = file("${filePath}/${fileName}", FILE_IGNORE_NEW_LINES);
-            if (count($contentArray) >= 2) {
-                $notify = $contentArray[0];
-                $accept = "accept_date=" . $date->format('Y-m-d H:i:s');
-                $filePath = WEB_PATH_ATTACH_FILE . "/" . $_GET["jId"];
-                $filehandler = fopen("${filePath}/${fileName}", 'r+');
-                $contents = $notify . PHP_EOL . $accept;
+            $content = file_get_contents("${filePath}/${fileName}");
+            if ($content) {
+                $jobInfo = json_decode($content);
+                $jobInfo->accept_date = $date->format('Y-m-d H:i:s');
+                $filehandler = fopen("${filePath}\\${fileName}", 'w');
+                $contents = json_encode($jobInfo);
                 fwrite($filehandler, $contents);
                 fclose($filehandler);
             }
@@ -381,7 +432,7 @@ class JobController extends BaseController
                 default:
                     rename("${filePath}/${fileName}", "${filePath}/${fileName}.tmp");
             }
-            
+
             $this->send(
                 json_encode((object) ['status' => 'success', 'fileName' => $fileName], JSON_UNESCAPED_UNICODE),
                 array('Content-Type: application/json; charset=utf-8', $this->_httpStatusCode["200"])
@@ -423,7 +474,7 @@ class JobController extends BaseController
         $date = new DateTime();
         $filePath = WEB_PATH_ATTACH_FILE . "/" . $jId;
         $fileName = sprintf('%s_noimage_%s.png', $eId, $date->format('YmdHis'));
-       
+
         // Set the content-type
         header('Content-Type: image/png');
 

@@ -11,7 +11,7 @@ $uri = explode('/', str_replace($uri_root, "", $uri));
 
 if (!isset($uri[2]) || !isset($uri[3])) {
     //header("HTTP/1.1 404 Not Found");
-    require "index.txt";
+    require "version.txt";
     exit();
 }
 
