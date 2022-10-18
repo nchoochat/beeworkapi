@@ -5,7 +5,8 @@ SELECT
     c.Address,
     REPLACE(j.Location, SUBSTRING(j.Location, POSITION('{' IN j.Location), POSITION('}' IN j.Location)), '') AS 'Location',
     REPLACE(REPLACE(SUBSTRING(j.Location, POSITION('{' IN j.Location), POSITION('}' IN j.Location)), '{', ''), '}', '') AS Map,
-    jc.Name AS ContractName,
+    jc.ContractName,
+    jc.ContractPhone,
     jt.Name AS JobType,
     j.DayAppointment AS Appointment,
     jb.BoxNo AS BoxNumber,
@@ -26,7 +27,15 @@ INNER JOIN job_emp jm ON j.JobId = jm.JobId
 INNER JOIN employee e ON e.EmployeeId = jm.EmployeeId
 INNER JOIN customer c ON c.CustomerId = j.CustomerId
 INNER JOIN job_type jt ON jt.JobTypeId = j.JobTypeId
-LEFT JOIN job_contact jc ON jc.JobId = j.JobId
+/*LEFT JOIN job_contact jc ON jc.JobId = j.JobId*/
+LEFT JOIN (
+    SELECT
+    	jc.JobId,
+    	jc.Name AS ContractName,
+    	jc.Phone AS ContractPhone
+    FROM job_contact jc
+    GROUP BY jc.JobId
+) jc ON jc.JobId = j.JobId
 LEFT JOIN (
 	SELECT
     	jb.JobId,
@@ -38,7 +47,7 @@ LEFT JOIN (
  LEFT JOIN (
     SELECT
         jm.JobId,
-        GROUP_CONCAT(IF(ISNULL(e.Name)=1, '', e.Name) SEPARATOR '\n') AS ListOfActor
+        GROUP_CONCAT(IF(ISNULL(e.Name) = 1, '', e.Name) SEPARATOR '\n') AS ListOfActor
     FROM job_emp jm
     INNER JOIN employee e ON jm.EmployeeId = e.EmployeeId
     GROUP By jm.JobId

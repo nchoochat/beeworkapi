@@ -19,7 +19,7 @@ $realm = 'Restricted area';
 switch (strtolower($uri[2])) {
     case 'user':        
         if (!empty($_SERVER['PHP_AUTH_DIGEST'])) {
-            require PROJECT_ROOT_PATH . "/Controller/Api/UserController.php";
+            require PROJECT_ROOT_PATH . "/Controller/UserController.php";
             $objFeedController = new UserController();
             $objFeedController->{$uri[3]}();
         } else {
@@ -28,21 +28,26 @@ switch (strtolower($uri[2])) {
         break;
     case 'job':
         if (!empty($_SERVER['PHP_AUTH_DIGEST'])) {
-            require PROJECT_ROOT_PATH . "/Controller/Api/JobController.php";
+            require PROJECT_ROOT_PATH . "/Controller/JobController.php";
             $objFeedController = new JobController();
             $objFeedController->{$uri[3]}();
         } else {
             header('HTTP/1.1 401 Unauthorized');
         }
         break;
+    case 'notify':
+        require PROJECT_ROOT_PATH . "/Controller/NotifyController.php";
+        $objFeedController = new NotifyController();
+        $objFeedController->{$uri[3]}();
+        break;
     case 'image':
-        require PROJECT_ROOT_PATH . "/Controller/Api/ImageController.php";
+        require PROJECT_ROOT_PATH . "/Controller/ImageController.php";
         $objFeedController = new ImageController();
         $objFeedController->{$uri[3]}();
         break;
     case 'logs':
-        require PROJECT_ROOT_PATH . "/Controller/Api/LogsController.php";
-        $objFeedController = new ImageController();
+        require PROJECT_ROOT_PATH . "/Controller/LogsController.php";
+        $objFeedController = new LogsController();
         $objFeedController->{$uri[3]}();
         break;
     default:
