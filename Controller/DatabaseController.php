@@ -16,21 +16,41 @@ class DatabaseController
         }
     }
 
-    public function execut($query = "", $params = [])
+    public function execute($query = "")
     {
         try {
             $stmt = $this->connection->prepare($query);
             if ($stmt === false) {
                 throw new Exception("Unable to do prepared statement: " . $query);
             }
-            if ($params) {
-                $stmt->bind_param($params[0], $params[1]);
-            }
             $stmt->execute();
             $result = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
             $stmt->close();
 
             return $result;
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+        return false;
+    }
+
+    public function executeScalar($query = "")
+    {
+        try {
+            $stmt = $this->connection->prepare($query);
+            if ($stmt === false) {
+                throw new Exception("Unable to do prepared statement: " . $query);
+            }
+            $stmt->execute();
+            $result = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+            
+            $stmt->close();
+            if (count($result) == 0)
+                return null;
+            else{
+               return array_values($result[0])[0];
+            }
+                
         } catch (Exception $e) {
             throw new Exception($e->getMessage());
         }

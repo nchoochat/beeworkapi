@@ -1,8 +1,15 @@
 <?php
+
 declare(strict_types=1);
 date_default_timezone_set("Asia/Bangkok");
 class BaseController
 {
+    protected $_httpStatusCode = [
+        "200" => "OK",
+        "400" => "Bad Request",
+        "500" => "Internal Server Error",
+    ];
+
     function __construct()
     {
     }
@@ -56,6 +63,15 @@ class BaseController
         echo $data;
         exit;
     }
+    
+    protected function badrequest(string $message)
+    {
+        $this->send(
+            json_encode($this->result('400', $message)),
+            array('Content-Type: application/json', $this->_httpStatusCode["400"])
+        );
+    }
+
     protected function send($response, $httpHeaders = array())
     {
         header_remove('Set-Cookie');
@@ -67,5 +83,14 @@ class BaseController
         }
         echo $response;
         exit;
+    }
+
+    protected function result(string $statusCode, string $message)
+    {
+        $result = new stdClass();
+        $result->statusCode = $statusCode;
+        $result->statusText = $this->_httpStatusCode[$statusCode];
+        $result->message = $message;
+        return $result;
     }
 }

@@ -18,11 +18,11 @@ class LogsController extends BaseController
     }
     function save()
     {
-        if (!file_exists(WEB_PATH_ATTACH_FILE)) {
-            mkdir(WEB_PATH_ATTACH_FILE);
+        if (!file_exists(WEB_PATH_PHOTO)) {
+            mkdir(WEB_PATH_PHOTO);
         }
         $date = new DateTime();
-        $filePath = WEB_PATH_ATTACH_FILE . "\\";
+        $filePath = WEB_PATH_PHOTO . "\\";
         $fileName = 'log-' . $date->format('Y-m-d') . '.txt';
         $filehandler = fopen("${filePath}\\${fileName}", 'a+');
         fwrite($filehandler, str_replace(array('{0}', '{1}', '{2}'), array($date->format('Y-m-d H:i:s'), $_POST['title'], $_POST['detail']), "[{0}]{1}:{2}" . PHP_EOL));
@@ -34,13 +34,13 @@ class LogsController extends BaseController
     //     $msg = $_POST["msg"];
 
     //     // -- Make Root Folder If Not Exist
-    //     if (!file_exists(WEB_PATH_ATTACH_FILE)) {
-    //         mkdir(WEB_PATH_ATTACH_FILE);
+    //     if (!file_exists(WEB_PATH_PHOTO)) {
+    //         mkdir(WEB_PATH_PHOTO);
     //     }
 
     //     //-- Meak File Information If Not Exist
-    //     //if (!file_exists(WEB_PATH_ATTACH_FILE . "\\errors.txt")) {
-    //     $filePath = WEB_PATH_ATTACH_FILE . "\\";
+    //     //if (!file_exists(WEB_PATH_PHOTO . "\\errors.txt")) {
+    //     $filePath = WEB_PATH_PHOTO . "\\";
     //     $fileName = 'errors.txt';
     //     $filehandler = fopen("${filePath}\\${fileName}", 'w');
     //     //$contents = "notify_date=" . PHP_EOL . "accept_date=";

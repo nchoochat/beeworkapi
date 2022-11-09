@@ -56,11 +56,6 @@ class ImageController extends BaseController
         $output = ob_get_contents(); // get the image as a string in a variable
         ob_end_clean(); //Turn off output buffering and clean it
         return strlen($output); //size in bytes
-        // if ($imgResized != null) {
-
-        // } else {
-        //     return false;
-        // }
     }
 
     public function thumbnail()
@@ -68,7 +63,7 @@ class ImageController extends BaseController
         $jId = $_GET["jId"];
         $fId = $_GET["fId"];
         try {
-            $ext =  pathinfo(WEB_PATH_ATTACH_FILE . "/${jId}/${fId}", PATHINFO_EXTENSION);
+            $ext =  pathinfo(WEB_PATH_PHOTO . "/${jId}/${fId}", PATHINFO_EXTENSION);
             switch ($ext) {
                 case 'jpg':
                     header("Content-type: image/jpeg");
@@ -78,9 +73,8 @@ class ImageController extends BaseController
                     break;
                 default:
             }
-            echo $this->resize_image(WEB_PATH_ATTACH_FILE . "/${jId}/${fId}", 150, 150, false);
+            echo $this->resize_image(WEB_PATH_PHOTO . "/${jId}/${fId}", 150, 150, false);
         } catch (\Throwable $th) {
-            print_r('sssssssssssssss');
             throw $th;
         }
     }
@@ -90,7 +84,7 @@ class ImageController extends BaseController
         $jId = $_GET["jId"];
         $fId = $_GET["fId"];
         try {
-            $ext =  pathinfo(WEB_PATH_ATTACH_FILE . "/${jId}/${fId}", PATHINFO_EXTENSION);
+            $ext =  pathinfo(WEB_PATH_PHOTO . "/${jId}/${fId}", PATHINFO_EXTENSION);
             switch ($ext) {
                 case 'jpg':
                     header("Content-type: image/jpeg");
@@ -100,7 +94,7 @@ class ImageController extends BaseController
                     break;
                 default:
             }
-            echo $this->resize_image(WEB_PATH_ATTACH_FILE . "/${jId}/${fId}", null, null, false);
+            echo $this->resize_image(WEB_PATH_PHOTO . "/${jId}/${fId}", null, null, false);
         } catch (\Throwable $th) {
             print_r('sssssssssssssss');
             throw $th;

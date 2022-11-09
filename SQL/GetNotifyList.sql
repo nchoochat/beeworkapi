@@ -3,7 +3,7 @@ SELECT j.jobId AS ID,
     j.DayAppointment,
     e.EmployeeId,
     e.Name AS FullName,
-    e.NotifyToken,
+    '' AS NotifyToken,
     c.Name AS CustomerName,
     j.TimeStamp AS UpdateDate,
     j.Description,
@@ -20,10 +20,13 @@ FROM (
     INNER JOIN job_emp jm ON j.JobId = jm.JobId
     INNER JOIN employee e ON e.EmployeeId = jm.EmployeeId
     INNER JOIN customer c ON c.CustomerId = j.CustomerId
-WHERE j.Next = 0
+WHERE j.Next = 0 AND (e.EmployeeId = '{0}' OR '{0}' = 'All')
     AND j.JobStatusId = 1
     AND e.NotifyToken IS NOT NULL
-    AND j.DayAppointment <= CASE
-        WHEN CURRENT_TIMESTAMP < TIMESTAMP(CURRENT_DATE, '16:00:00') THEN TIMESTAMP(CURRENT_DATE, '23:59:59')
-        ELSE TIMESTAMP(CURRENT_DATE, '23:59:59') + INTERVAL 1 DAY
-    END
+   AND(
+        (
+            CURRENT_TIMESTAMP < TIMESTAMP(CURRENT_DATE, '16:00:00') AND j.DayAppointment <= TIMESTAMP(CURRENT_DATE, '23:59:59')
+        ) OR (
+            CURRENT_TIMESTAMP >= TIMESTAMP(CURRENT_DATE, '16:00:00') AND j.DayAppointment <= TIMESTAMP(CURRENT_DATE, '23:59:59') + INTERVAL 1 DAY
+        )
+    )
