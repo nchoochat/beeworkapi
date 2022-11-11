@@ -48,9 +48,9 @@ class NotifyController extends BaseController
         try {
 
             $jobList = (new Job)->get_notify_list('All');
-
             $date = new DateTime();
-            //print_r($date);
+            
+            print_r("Notify Start >>>>>" . PHP_EOL);
             for ($i = 0; $i < count($jobList); $i++) {
                 $el = $jobList[$i];
 
@@ -135,6 +135,7 @@ class NotifyController extends BaseController
                     //throw $th;
                 }
             }
+            print_r("Notify END <<<<<<" . PHP_EOL);
         } catch (\Throwable $th) {
             throw $th;
         }

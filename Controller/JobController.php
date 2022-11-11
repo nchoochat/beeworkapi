@@ -49,8 +49,6 @@ class JobController extends BaseController
                     $numOfAttachment = 0;
                     if (file_exists(WEB_PATH_PHOTO . "/" . $element["JobId"])) {
                         $files = scandir(WEB_PATH_PHOTO . "/" . $element["JobId"]);
-                        //print_r($files);
-                        //print_r($element["EmployeeId"]);
                         foreach ($files as $fileName) {
                             if (strpos($fileName, $element["EmployeeId"] . '_') !== false) {
                                 $numOfAttachment += 1;
@@ -58,7 +56,6 @@ class JobController extends BaseController
                         }
                     }
                     $jobList[$i]['NumOfAttachment'] = $numOfAttachment;
-                    //print_r($numOfAttachment);
                 }
 
                 $this->send(
