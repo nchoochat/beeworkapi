@@ -20,7 +20,7 @@ FROM (
     INNER JOIN job_emp jm ON j.JobId = jm.JobId
     INNER JOIN employee e ON e.EmployeeId = jm.EmployeeId
     INNER JOIN customer c ON c.CustomerId = j.CustomerId
-WHERE j.Next = 0 AND (e.EmployeeId = '{0}' OR '{0}' = 'All')
+WHERE j.Next = 0 AND (e.EmployeeId = '{0}' OR '{0}' = 'all')
     AND j.JobStatusId = 1
     AND e.NotifyToken IS NOT NULL
    AND(

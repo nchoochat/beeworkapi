@@ -5,10 +5,6 @@ require_once ROOT_PATH . "/Model/Job.php";
 
 class NotifyController extends BaseController
 {
-    protected $_httpStatusCode = [
-        "500" => "HTTP/1.1 500 Internal Server Error",
-        "200" => "HTTP/1.1 200 OK",
-    ];
 
     function __construct()
     {
@@ -47,7 +43,7 @@ class NotifyController extends BaseController
     {
         try {
 
-            $jobList = (new Job)->get_notify_list('All');
+            $jobList = (new Job)->get_notify_list('all');
             $date = new DateTime();
             
             print_r("Notify Start >>>>>" . PHP_EOL);

@@ -4,11 +4,6 @@ declare(strict_types=1);
 require_once ROOT_PATH . "/Model/Job.php";
 class JobController extends BaseController
 {
-    protected $_httpStatusCode = [
-        "500" => "HTTP/1.1 500 Internal Server Error",
-        "200" => "HTTP/1.1 200 OK",
-    ];
-
     function __construct()
     {
         if (!file_exists(WEB_PATH_PHOTO)) {
@@ -38,29 +33,70 @@ class JobController extends BaseController
         chmod("${filePath}/${fileName}", 0777);
     }
 
+    public function fileperm()
+    {
+
+        try {
+            //code...
+            $fileName = "";
+            if (function_exists('com_create_guid') === true) {
+                $fileName = trim(com_create_guid(), '{}') . ".txt";
+            } else {
+                $fileName =  sprintf('%04X%04X-%04X-%04X-%04X-%04X%04X%04X', mt_rand(0, 65535), mt_rand(0, 65535), mt_rand(0, 65535), mt_rand(16384, 20479), mt_rand(32768, 49151), mt_rand(0, 65535), mt_rand(0, 65535), mt_rand(0, 65535)) . ".txt";
+            }
+            $date = new DateTime();
+            file_put_contents(WEB_PATH_PHOTO . "/" . $fileName, $date->format('Y-m-d H:i:s'));
+            unlink(WEB_PATH_PHOTO . "/" . $fileName);
+
+            $lastError = error_get_last();
+            if ($lastError == null) {
+                $result = new stdClass();
+                $result->status = true;
+                $result->message = WEB_PATH_PHOTO;
+                $this->send(
+                    $this::OK,
+                    json_encode($result),
+                    array('Content-Type: application/json')
+                );
+            } else {
+                $this->send(
+                    $this::INTERNAL_SERVER_ERROR,
+                    json_encode($this->result((string)$this::INTERNAL_SERVER_ERROR, WEB_PATH_PHOTO)),
+                    array('Content-Type: application/json')
+                );
+            }
+        } catch (\Throwable $th) {
+            //throw $th;
+            $this->send(
+                $this::INTERNAL_SERVER_ERROR,
+                json_encode($this->result((string)$this::INTERNAL_SERVER_ERROR, $th->getMessage())),
+                array('Content-Type: application/json')
+            );
+        }
+    }
     public function list()
     {
         if ($_SERVER["REQUEST_METHOD"] == "GET") {
             try {
-
                 $jobList = (new Job)->get_job_list($_GET["eId"]);
+                $eId = $_GET["eId"] == "all" ? "" : $_GET["eId"];
                 for ($i = 0; $i < count($jobList); $i++) {
                     $element = $jobList[$i];
                     $numOfAttachment = 0;
                     if (file_exists(WEB_PATH_PHOTO . "/" . $element["JobId"])) {
                         $files = scandir(WEB_PATH_PHOTO . "/" . $element["JobId"]);
                         foreach ($files as $fileName) {
-                            if (strpos($fileName, $element["EmployeeId"] . '_') !== false) {
+                            if (strpos($fileName, $eId . '_') !== false) {
                                 $numOfAttachment += 1;
                             }
                         }
                     }
                     $jobList[$i]['NumOfAttachment'] = $numOfAttachment;
                 }
-
                 $this->send(
+                    $this::OK,
                     json_encode(array_values($jobList), JSON_UNESCAPED_UNICODE),
-                    array('Content-Type: application/json; charset=utf-8', $this->_httpStatusCode["200"])
+                    array('Content-Type: application/json; charset=utf-8')
                 );
             } catch (\Throwable $th) {
                 throw $th;
@@ -106,8 +142,9 @@ class JobController extends BaseController
                     $jobList[0]['PendingClose'] += $pendingClose;
                 }
                 $this->send(
+                    $this::OK,
                     json_encode(array_values($jobList), JSON_UNESCAPED_UNICODE),
-                    array('Content-Type: application/json; charset=utf-8', $this->_httpStatusCode["200"])
+                    array('Content-Type: application/json; charset=utf-8')
                 );
             } catch (\Throwable $th) {
                 throw $th;
@@ -149,8 +186,9 @@ class JobController extends BaseController
                 }, ARRAY_FILTER_USE_BOTH);
 
                 $this->send(
+                    $this::OK,
                     json_encode(array_values($jobList), JSON_UNESCAPED_UNICODE),
-                    array('Content-Type: application/json; charset=utf-8', $this->_httpStatusCode["200"])
+                    array('Content-Type: application/json; charset=utf-8')
                 );
             } catch (\Throwable $th) {
                 throw $th;
@@ -244,14 +282,7 @@ class JobController extends BaseController
                 }
             }
 
-            // $jobList = array_filter($jobList, function ($element, $index) {
-            //     return $element['NotifyDate'] == '';
-            // }, ARRAY_FILTER_USE_BOTH);
-
-            // $this->send(
-            //     json_encode(array_values($jobList), JSON_UNESCAPED_UNICODE),
-            //     array('Content-Type: application/json; charset=utf-8', $this->_httpStatusCode["200"])
-            // );
+           
         } catch (\Throwable $th) {
             throw $th;
         }
@@ -281,8 +312,9 @@ class JobController extends BaseController
                     return $element['AcceptDate'] == '';
                 }, ARRAY_FILTER_USE_BOTH);
                 $this->send(
+                    $this::OK,
                     json_encode(array_values($jobList), JSON_UNESCAPED_UNICODE),
-                    array('Content-Type: application/json; charset=utf-8', $this->_httpStatusCode["200"])
+                    array('Content-Type: application/json; charset=utf-8')
                 );
             } catch (\Throwable $th) {
                 throw $th;
@@ -313,8 +345,9 @@ class JobController extends BaseController
             }
         }
         $this->send(
+            $this::OK,
             json_encode((object) ['status' => 'success', 'fileName' => $fileName], JSON_UNESCAPED_UNICODE),
-            array('Content-Type: application/json; charset=utf-8', $this->_httpStatusCode["200"])
+            array('Content-Type: application/json; charset=utf-8')
         );
     }
 
@@ -348,8 +381,9 @@ class JobController extends BaseController
                     'numOfTotal' => $numOfPendingWork + $numOfPendingClose
                 ];
                 $this->send(
+                    $this::OK,
                     json_encode($responst, JSON_UNESCAPED_UNICODE),
-                    array('Content-Type: application/json; charset=utf-8', $this->_httpStatusCode["200"])
+                    array('Content-Type: application/json; charset=utf-8')
                 );
             } catch (\Throwable $th) {
                 throw $th;
@@ -364,7 +398,7 @@ class JobController extends BaseController
                 $jobDetail = (new Job)->get_job_list($_GET["jId"]);
                 $this->send(
                     json_encode(array_values($jobDetail), JSON_UNESCAPED_UNICODE),
-                    array('Content-Type: application/json; charset=utf-8', $this->_httpStatusCode["200"])
+                    array('Content-Type: application/json; charset=utf-8')
                 );
             } catch (\Throwable $th) {
                 throw $th;
@@ -375,7 +409,7 @@ class JobController extends BaseController
     public function attachfilelist()
     {
         $jId = $_GET["jId"];
-        $eId = $_GET["eId"];
+        $eId = $_GET["eId"] == "all" ? "" : $_GET["eId"];
         $litOfAttachFile = array();
         if (file_exists(WEB_PATH_PHOTO . "/" . $jId)) {
             $files = scandir(WEB_PATH_PHOTO . "/" . $jId);
@@ -388,8 +422,9 @@ class JobController extends BaseController
             }
         }
         $this->send(
+            $this::OK,
             json_encode($litOfAttachFile, JSON_UNESCAPED_UNICODE),
-            array('Content-Type: application/json; charset=utf-8', $this->_httpStatusCode["200"])
+            array('Content-Type: application/json; charset=utf-8')
         );
     }
 
@@ -422,13 +457,15 @@ class JobController extends BaseController
             }
 
             $this->send(
+                $this::OK,
                 json_encode((object) ['status' => 'success', 'fileName' => $fileName], JSON_UNESCAPED_UNICODE),
-                array('Content-Type: application/json; charset=utf-8', $this->_httpStatusCode["200"])
+                array('Content-Type: application/json; charset=utf-8')
             );
         } else {
             $this->send(
+                $this::OK,
                 json_encode((object) ['status' => 'failed', 'fileName' => ""], JSON_UNESCAPED_UNICODE),
-                array('Content-Type: application/json; charset=utf-8', $this->_httpStatusCode["200"])
+                array('Content-Type: application/json; charset=utf-8')
             );
         }
     }
@@ -442,8 +479,9 @@ class JobController extends BaseController
                 unlink(WEB_PATH_PHOTO . "/${jId}/${fId}");
             }
             $this->send(
+                $this::OK,
                 json_encode((object) ['status' => 'success', 'fileName' => $fId], JSON_UNESCAPED_UNICODE),
-                array('Content-Type: application/json; charset=utf-8', $this->_httpStatusCode["200"])
+                array('Content-Type: application/json; charset=utf-8')
             );
         } catch (\Throwable $th) {
             throw $th;
@@ -501,8 +539,9 @@ class JobController extends BaseController
 
         header_remove('Content-Type');
         $this->send(
+            $this::OK,
             json_encode((object) ['status' => 'success', 'fileName' => $fileName], JSON_UNESCAPED_UNICODE),
-            array('Content-Type: application/json; charset=utf-8', $this->_httpStatusCode["200"])
+            array('Content-Type: application/json; charset=utf-8')
         );
     }
 }

@@ -1,5 +1,5 @@
 SELECT 
-	'All' AS EmployeeId,
+	'all' AS EmployeeId,
     'ทั้งหมด' AS FullName,
     '' AS ListOfJob,
     0 AS PendingWork, 0 AS PendingClose

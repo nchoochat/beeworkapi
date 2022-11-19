@@ -4,11 +4,6 @@ declare(strict_types=1);
 
 class ImageController extends BaseController
 {
-    protected $_httpStatusCode = [
-        "500" => "HTTP/1.1 500 Internal Server Error",
-        "200" => "HTTP/1.1 200 OK",
-    ];
-
     function __construct()
     {
         //echo $_SERVER["REQUEST_METHOD"];

@@ -1,5 +1,4 @@
 <?php
-
 $realm = 'Restricted area';
 
 //user => password
