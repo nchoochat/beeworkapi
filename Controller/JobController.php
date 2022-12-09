@@ -1,7 +1,11 @@
 <?php
 
 declare(strict_types=1);
+
 require_once ROOT_PATH . "/Model/Job.php";
+require_once ROOT_PATH . "/Controller/LogsController.php";
+require_once ROOT_PATH . "/Controller/ImageController.php";
+
 class JobController extends BaseController
 {
     function __construct()
@@ -274,15 +278,13 @@ class JobController extends BaseController
                             sleep(1); // Wait 1 second 
                         }
                         $jobInfo->update_date = $el["UpdateDate"];
-                        $filehandler = fopen("${filePath}\\${fileName}", 'w');
+                        $filehandler = fopen("${filePath}/${fileName}", 'w');
                         $contents = json_encode($jobInfo);
                         fwrite($filehandler, $contents);
                         fclose($filehandler);
                     }
                 }
             }
-
-           
         } catch (\Throwable $th) {
             throw $th;
         }
@@ -428,45 +430,96 @@ class JobController extends BaseController
         );
     }
 
-    public function uploadfile()
+    public function filelist()
     {
         $jId = $_GET["jId"];
-        $eId = $_GET["eId"];
-
-        if (isset($_POST["image"])) {
-            if (!file_exists(WEB_PATH_PHOTO . "/" . $jId)) {
-                mkdir(WEB_PATH_PHOTO . "/" . $jId);
+        $eId = $_GET["eId"] == "all" ? "" : $_GET["eId"];
+        $litOfAttachFile = array();
+        if (file_exists(WEB_PATH_PHOTO . "/" . $jId)) {
+            $files = scandir(WEB_PATH_PHOTO . "/" . $jId);
+            foreach ($files as $fineIndex => $fileName) {
+                if (pathinfo($fileName, PATHINFO_EXTENSION) != 'txt') {
+                    if (strpos($fileName, $eId . '_') !== false) {
+                        array_push($litOfAttachFile, $fileName);
+                    }
+                }
             }
-            $date = new DateTime();
-            $filePath = WEB_PATH_PHOTO . "/" . $jId;
-            $fileName = sprintf('%s_%s', $eId, $date->format('YmdHis'));
-            $base64_string = $_POST["image"];
-            $filehandler = fopen("${filePath}/${fileName}", 'wb');
-            fwrite($filehandler, base64_decode($base64_string));
-            fclose($filehandler);
-            $mimeFile = (mime_content_type("${filePath}/${fileName}"));
-            switch ($mimeFile) {
-                case 'image/png':
-                    rename("${filePath}/${fileName}", "${filePath}/${fileName}.png");
-                    break;
-                case 'image/jpeg':
-                    rename("${filePath}/${fileName}", "${filePath}/${fileName}.jpg");
-                    break;
-                default:
-                    rename("${filePath}/${fileName}", "${filePath}/${fileName}.tmp");
-            }
+        }
+        $this->send(
+            $this::OK,
+            json_encode($litOfAttachFile, JSON_UNESCAPED_UNICODE),
+            array('Content-Type: application/json; charset=utf-8')
+        );
+    }
 
-            $this->send(
-                $this::OK,
-                json_encode((object) ['status' => 'success', 'fileName' => $fileName], JSON_UNESCAPED_UNICODE),
-                array('Content-Type: application/json; charset=utf-8')
-            );
-        } else {
-            $this->send(
-                $this::OK,
-                json_encode((object) ['status' => 'failed', 'fileName' => ""], JSON_UNESCAPED_UNICODE),
-                array('Content-Type: application/json; charset=utf-8')
-            );
+    public function uploadfile()
+    {
+        try {
+            //code...
+            $jId = $_GET["jId"];
+            $eId = $_GET["eId"];
+
+            if (isset($_POST["image"])) {
+                if (!file_exists(WEB_PATH_PHOTO . "/" . $jId)) {
+                    mkdir(WEB_PATH_PHOTO . "/" . $jId, 0777);
+                    chmod(WEB_PATH_PHOTO . "/" . $jId, 0777);
+                }
+
+                $date = new DateTime();
+                $filePath = WEB_PATH_PHOTO . "/" . $jId;
+                $fileName = sprintf('%s_%s', $eId, $date->format('YmdHis'));
+                $base64_string = $_POST["image"];
+                $filehandler = fopen("${filePath}/${fileName}", 'wb');
+                fwrite($filehandler, base64_decode($base64_string));
+                fclose($filehandler);
+                $mimeFile = (mime_content_type("${filePath}/${fileName}"));
+
+                switch ($mimeFile) {
+                    case 'image/png':
+                        rename("${filePath}/${fileName}", "${filePath}/${fileName}.png");
+                        $filePath = "${filePath}/${fileName}.png";
+                        break;
+                    case 'image/jpeg':
+                        rename("${filePath}/${fileName}", "${filePath}/${fileName}.jpg");
+                        $filePath = "${filePath}/${fileName}.jpg";
+                        break;
+                    default:
+                        rename("${filePath}/${fileName}", "${filePath}/${fileName}.tmp");
+                        $filePath = "";
+                }
+
+                //- send to line application
+                try {
+                    //code...
+                    $jobDetail = (new Job)->get_job_detail_by_jobid_and_employeeid($jId, $eId);
+                    for ($i = 0; $i < count($jobDetail); $i++) {
+                        $el = $jobDetail[$i];
+                        $msg = "";
+                        $msg = $msg .  "อัพโหลดงาน  " . $jId . "\n";
+                        $msg = $msg .  "ลูกค้า: " . $el["CustomerName"] . "\n";
+                        $msg = $msg .  "พนักงาน: " . $el["Fullname"] . " (" . $eId .  ")\n";
+                        $this->photo2line($msg, $filePath, 'line_' . $jId);
+                    }
+                } catch (\Throwable $th) {
+                    //throw $th;
+                    (new LogsController)->write('error line ' . $th->getMessage());
+                }
+
+                $this->send(
+                    $this::OK,
+                    json_encode((object) ['status' => 'success', 'fileName' => $fileName], JSON_UNESCAPED_UNICODE),
+                    array('Content-Type: application/json; charset=utf-8')
+                );
+            } else {
+                $this->send(
+                    $this::OK,
+                    json_encode((object) ['status' => 'failed', 'fileName' => ""], JSON_UNESCAPED_UNICODE),
+                    array('Content-Type: application/json; charset=utf-8')
+                );
+            }
+        } catch (\Throwable $th) {
+            //throw $th;
+            (new LogsController)->write('error' . $th->getMessage());
         }
     }
 
@@ -543,5 +596,66 @@ class JobController extends BaseController
             json_encode((object) ['status' => 'success', 'fileName' => $fileName], JSON_UNESCAPED_UNICODE),
             array('Content-Type: application/json; charset=utf-8')
         );
+    }
+
+    function photo2line(String $messaage, String $file_path, String $resizePrefix)
+    {
+        if (APP_LINE_TOKEN != '') {
+            try {
+                if (!file_exists(ROOT_PATH . '/Data/Temp')) {
+                    mkdir(ROOT_PATH . '/Data/Temp', 0777);
+                    chmod(ROOT_PATH . '/Data/Temp', 0777);
+                }
+                //code...
+
+                $fileName = ROOT_PATH . '/Data/Temp/' . $resizePrefix . '_' . pathinfo($file_path, PATHINFO_FILENAME) . '.' . pathinfo($file_path, PATHINFO_EXTENSION);
+
+
+                //-- {ชื่อพนักงาน} ส่งรูปงาน {หมายเลขงาน} 
+                //$mymessage = "เรื่อง: ทดสอบส่งข้อความ"; //Set new line with '\n'
+
+                (new ImageController())->resize_image($file_path, 4096, 4096, false, $fileName);
+                $imageFile = new CURLFILE($fileName); // Local Image file Path  
+                // $filehandler = fopen(WEB_PATH_PHOTO . '/' . $fileName, 'wb');
+                // fwrite($filehandler,  base64_decode($imageResize));
+                // fclose($filehandler);
+
+                //$result = (new ImageController())->resize_image($file_path,2048, 2048, false);
+                //$sticker_package_id = '2';  // Package ID sticker
+                //$sticker_id = '34';    // ID sticker
+                $data = array(
+                    'message' => $messaage,
+                    'imageFile' => $imageFile,
+                    'imageFile2' => $imageFile
+                );
+
+                $chOne = curl_init();
+                curl_setopt($chOne, CURLOPT_URL, "https://notify-api.line.me/api/notify");
+                curl_setopt($chOne, CURLOPT_SSL_VERIFYHOST, 0);
+                curl_setopt($chOne, CURLOPT_SSL_VERIFYPEER, 0);
+                curl_setopt($chOne, CURLOPT_POST, 1);
+                curl_setopt($chOne, CURLOPT_POSTFIELDS, $data);
+                curl_setopt($chOne, CURLOPT_FOLLOWLOCATION, 1);
+                $headers = array('Method: POST', 'Content-type: multipart/form-data', 'Authorization: Bearer ' . APP_LINE_TOKEN,);
+                curl_setopt($chOne, CURLOPT_HTTPHEADER, $headers);
+                curl_setopt($chOne, CURLOPT_RETURNTRANSFER, 1);
+                curl_setopt($chOne, CURLOPT_BUFFERSIZE, 10485764);
+                $result = curl_exec($chOne);
+                //Check error
+                $return = '';
+                if (curl_error($chOne)) {
+                    $return = curl_error($chOne);
+                } else {
+                    $return = json_decode($result, true);
+                }
+                //Close connection
+                curl_close($chOne);
+                return $return;
+            } catch (\Throwable $th) {
+                //throw $th;
+                (new LogsController)->write($th->getMessage());
+                return $th->getMessage();
+            }
+        }
     }
 }

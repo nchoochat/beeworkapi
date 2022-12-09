@@ -1,9 +1,8 @@
 <?php
 
-error_reporting(E_ERROR | E_PARSE);
-
+error_reporting(E_ERROR | E_WARNING | E_PARSE);
 //error_reporting(E_ALL);
-ini_set('display_errors', '1');
+//ini_set('display_errors', '1');
 
 date_default_timezone_set("Asia/Bangkok");
 class BaseController

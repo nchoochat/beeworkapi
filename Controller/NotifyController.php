@@ -19,23 +19,21 @@ class NotifyController extends BaseController
         }
 
         // -- Make Job Folder If Not Exist
-        if (!file_exists(WEB_PATH_PHOTO . "\\" . $jId)) {
-            mkdir(WEB_PATH_PHOTO . "\\" . $jId);
+        if (!file_exists(WEB_PATH_PHOTO . "/" . $jId)) {
+            mkdir(WEB_PATH_PHOTO . "/" . $jId, 0777);
+            chmod(WEB_PATH_PHOTO . "/" . $jId, 0777);
         }
 
         //-- Meak File Information If Not Exist
-        if (!file_exists(WEB_PATH_PHOTO . "\\" . $jId . "\\" . $eId . ".txt")) {
+        if (!file_exists(WEB_PATH_PHOTO . "/" . $jId . "/" . $eId . ".txt")) {
             $jobInfo = new stdClass();
             $jobInfo->notify_date = "";
             $jobInfo->accept_date = "";
             $jobInfo->update_date = $lastUpdte;
 
-            $filePath = WEB_PATH_PHOTO . "\\" . $jId;
+            $filePath = WEB_PATH_PHOTO . "/" . $jId;
             $fileName = sprintf('%s.txt', $eId);
-            $filehandler = fopen("${filePath}\\${fileName}", 'w');
-            $contents = json_encode($jobInfo);
-            fwrite($filehandler, $contents);
-            fclose($filehandler);
+            file_put_contents($filePath . "/" . $fileName, json_encode($jobInfo, JSON_PRETTY_PRINT));
         }
     }
 
@@ -45,11 +43,10 @@ class NotifyController extends BaseController
 
             $jobList = (new Job)->get_notify_list('all');
             $date = new DateTime();
-            
             print_r("Notify Start >>>>>" . PHP_EOL);
+            //print_r($jobList);
             for ($i = 0; $i < count($jobList); $i++) {
                 $el = $jobList[$i];
-
                 try {
                     $files = scandir(WEB_PATH_USER);
                     $fileName = "";
@@ -74,34 +71,34 @@ class NotifyController extends BaseController
                             $fileName = sprintf('%s.txt', $el["EmployeeId"],);
                             //$content = file("${filePath}/${fileName}", FILE_IGNORE_NEW_LINES);
                             $content = file_get_contents("${filePath}/${fileName}");
+                            $notifyType = "";
                             if ($content) {
                                 $jobInfo = json_decode($content);
                                 if ($jobInfo->notify_date == "") {
                                     //-- New Job
-                                    $el["NotifyType"] = "New Job";
+                                    $notifyType = "งานใหม่";
                                 } else if (strtotime($jobInfo->notify_date) <= strtotime($el["UpdateDate"])) {
                                     // -- Update Job
-                                    $el["NotifyType"] = "Update Job";
+                                    $notifyType = "งานอัพเดท";
                                 }
-                                if ($el["NotifyType"]  != "") {
+                                if ($notifyType  != "") {
                                     $url = 'https://fcm.googleapis.com/fcm/send';
 
                                     $header = "";
                                     $header = $header . "Content-Type: application/json\r\n";
                                     $header = $header . "Authorization: key=AAAAI4Uphw4:APA91bGKLfMRuJZvbdNCWjVxsnDzLjSAJi93_KYsyhAGZ5VlumSyJFT3ooQZWoJD4sHdu7up_YbKEGkpE0suS3fp35Sqn07U77IiVS1D4s4n9HwzNWO6NedhIq_zaveTesN0zUxxO9LJ";
 
-                                    //$data = array('key1' => 'value1', 'key2' => 'value2');
                                     $fcm = new stdClass();
                                     $notification = new stdClass();
-                                    $notification->title = $el["NotifyType"];
-                                    $notification->body = $el["CustomerName"] . "\n" . $el["Description"];
+                                    $notification->title = $notifyType;
+                                    $notification->body = $el["CustomerName"] . ": \n" . $el["Description"];
                                     $fcm->to = $el["NotifyToken"];
                                     $fcm->notification = $notification;
                                     $options = array(
                                         'http' => array(
                                             'header'  => $header,
                                             'method'  => 'POST',
-                                            'content' => json_encode($fcm)
+                                            'content' => json_encode($fcm, JSON_UNESCAPED_UNICODE)
                                         )
                                     );
                                     $context  = stream_context_create($options);
@@ -111,24 +108,20 @@ class NotifyController extends BaseController
                                     }
                                     sleep(1); // Wait 1 second 
                                     $jobInfo->update_date = $el["UpdateDate"];
-                                    $filehandler = fopen("${filePath}\\${fileName}", 'w');
-                                    $contents = json_encode($jobInfo);
-                                    fwrite($filehandler, $contents);
-                                    fclose($filehandler);
-
-                                    print_r($el["EmployeeId"] . " => " . $result . PHP_EOL);
+                                    file_put_contents($filePath . "/" . $fileName, json_encode($jobInfo, JSON_PRETTY_PRINT));
+                                    print_r($el["JobId"] . ',' . $el["EmployeeId"] . " => " . $result . PHP_EOL);
                                 }
                             } else {
-                                print_r($el["EmployeeId"] . " => " . "Notify tokey not found" . PHP_EOL);
+                                print_r($el["JobId"] . ',' . $el["EmployeeId"] . " => " . "Notify tokey not found" . PHP_EOL);
                             }
                         } else {
-                            print_r($el["EmployeeId"] . " => " . "Notify tokey not found" . PHP_EOL);
+                            print_r($el["JobId"] . ',' . $el["EmployeeId"] . " => " . "Notify tokey not found" . PHP_EOL);
                         }
                     } else {
-                        print_r($el["EmployeeId"] . " => " . "Notify tokey not found" . PHP_EOL);
+                        print_r($el["JobId"] . ',' . $el["EmployeeId"] . " => " . "Notify tokey not found" . PHP_EOL);
                     }
                 } catch (\Throwable $th) {
-                    //throw $th;
+                    throw $th;
                 }
             }
             print_r("Notify END <<<<<<" . PHP_EOL);

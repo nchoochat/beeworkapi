@@ -10,6 +10,7 @@ class LogsController extends BaseController
     }
     function error()
     {
+        
     }
     function save()
     {
@@ -24,23 +25,16 @@ class LogsController extends BaseController
         fclose($filehandler);
     }
 
-    // function save()
-    // {
-    //     $msg = $_POST["msg"];
-
-    //     // -- Make Root Folder If Not Exist
-    //     if (!file_exists(WEB_PATH_PHOTO)) {
-    //         mkdir(WEB_PATH_PHOTO);
-    //     }
-
-    //     //-- Meak File Information If Not Exist
-    //     //if (!file_exists(WEB_PATH_PHOTO . "\\errors.txt")) {
-    //     $filePath = WEB_PATH_PHOTO . "\\";
-    //     $fileName = 'errors.txt';
-    //     $filehandler = fopen("${filePath}\\${fileName}", 'w');
-    //     //$contents = "notify_date=" . PHP_EOL . "accept_date=";
-    //     fwrite($filehandler, $msg);
-    //     fclose($filehandler);
-    //     //}
-    // }
+    function write($msg)
+    {
+        if (!file_exists(WEB_PATH_USER)) {
+            mkdir(WEB_PATH_USER);
+        }
+        $date = new DateTime();
+        $filePath = WEB_PATH_USER . "\\";
+        $fileName = 'log-' . $date->format('Y-m-d') . '.txt';
+        $filehandler = fopen("${filePath}\\${fileName}", 'a+');
+        fwrite($filehandler, str_replace(array('{0}', '{1}', '{2}'), array($date->format('Y-m-d H:i:s'), 'internal error', $msg), "[{0}]{1}:{2}" . PHP_EOL));
+        fclose($filehandler);
+    }
 }

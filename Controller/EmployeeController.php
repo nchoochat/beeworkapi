@@ -28,7 +28,8 @@ class UserController extends BaseController
             $date = new DateTime();
             file_put_contents(WEB_PATH_USER . "/" . $fileName, $date->format('Y-m-d H:i:s'));
             unlink(WEB_PATH_USER . "/" . $fileName);
-
+            
+            print_r(error_get_last());
             $lastError = error_get_last();
             if ($lastError == null) {
                 $result = new stdClass();
@@ -47,7 +48,7 @@ class UserController extends BaseController
                 );
             }
         } catch (\Throwable $th) {
-            //throw $th;
+            throw $th;
             $this->send(
                 $this::INTERNAL_SERVER_ERROR,
                 json_encode($this->result((string)$this::INTERNAL_SERVER_ERROR, $th->getMessage())),
@@ -67,7 +68,7 @@ class UserController extends BaseController
                     $eId = "";
                     foreach ($files as  $fileName) {
                         if (pathinfo($fileName, PATHINFO_EXTENSION) == 'json') {
-                            $c = "-" . base64_decode($authUser->u) . '.';
+                            $c = "-" . strtolower(base64_decode($authUser->u)) . '.';
                             if (strpos($fileName, $c) !== false) {
                                 $eId = str_replace("a", "", str_replace($c . "json", "", $fileName));
                             }
@@ -143,6 +144,74 @@ class UserController extends BaseController
             }
         } catch (\Throwable $th) {
             //throw $th;
+            $this->send(
+                $this::INTERNAL_SERVER_ERROR,
+                $this->result($this::INTERNAL_SERVER_ERROR, $th->getMessage()),
+                array('Content-Type: application/json; charset=utf-8')
+            );
+        }
+    }
+
+    public function deviceinfo()
+    {
+        //exit();
+        //$result = new stdClass();
+        try {
+            if ($_SERVER["REQUEST_METHOD"] == "POST") {
+                $eId = $_POST["eId"];
+                $appV = $_POST["appV"];
+                $apiUrl = $_POST["apiUrl"];
+                $token = $_POST["token"];
+                $files = scandir(WEB_PATH_USER);
+                $fileName = "";
+
+                (string) $fileName = "";
+                (int) $loop = 0;
+                while ($loop < count($files) && $fileName == "") {
+                    if (pathinfo($files[$loop], PATHINFO_EXTENSION) == 'json') {
+                        $b = "a" . $eId . '-';
+                        if (strpos($files[$loop], $b) !== false) {
+                            $fileName = $files[$loop];
+                        }
+                    }
+                    $loop++;
+                }
+
+                if ($fileName !== "") {
+                    chmod(WEB_PATH_USER . "/" . $fileName, 0777);
+                    // --read file
+                    $fileContents = file_get_contents(WEB_PATH_USER . "/" . $fileName);
+                    $objContents = json_decode($fileContents);
+                    // write file
+                    $objUser = new stdClass();
+                    $objUser->pwd = (string)$objContents->pwd;
+                    $objUser->appV = $appV;
+                    $objUser->apiUrl = $apiUrl;
+                    $objUser->notify_token = $token;
+                    file_put_contents(WEB_PATH_USER . "/" . $fileName, json_encode($objUser, JSON_PRETTY_PRINT));
+
+                    $output = new stdClass();
+                    $output->status = true;
+                    $this->send(
+                        $this::OK,
+                        json_encode($output, JSON_UNESCAPED_UNICODE),
+                        array('Content-Type: application/json; charset=utf-8')
+                    );
+                } else {
+                    $this->send(
+                        $this::BAD_REQUEST,
+                        json_encode($this->badrequest('Notify token not save')),
+                        array('Content-Type: application/json')
+                    );
+                }
+            } else {
+                $this->send(
+                    $this::BAD_REQUEST,
+                    json_encode($this->badrequest($_SERVER["REQUEST_METHOD"] . ' Method not impllent')),
+                    array('Content-Type: application/json')
+                );
+            }
+        } catch (Exception $th) {
             $this->send(
                 $this::INTERNAL_SERVER_ERROR,
                 $this->result($this::INTERNAL_SERVER_ERROR, $th->getMessage()),

@@ -1,7 +1,6 @@
 <?php
-//error_reporting(E_ERROR | E_PARSE);
-//declare(strict_types=1);
-require __DIR__ . "/Inc/config.php";
+
+require __DIR__ . "/config.php";
 
 $uri_root = "/" . WEB_ROOT;
 

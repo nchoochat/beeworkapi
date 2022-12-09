@@ -22,7 +22,6 @@ FROM (
     INNER JOIN customer c ON c.CustomerId = j.CustomerId
 WHERE j.Next = 0 AND (e.EmployeeId = '{0}' OR '{0}' = 'all')
     AND j.JobStatusId = 1
-    AND e.NotifyToken IS NOT NULL
    AND(
         (
             CURRENT_TIMESTAMP < TIMESTAMP(CURRENT_DATE, '16:00:00') AND j.DayAppointment <= TIMESTAMP(CURRENT_DATE, '23:59:59')

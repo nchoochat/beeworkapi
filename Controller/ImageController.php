@@ -9,10 +9,10 @@ class ImageController extends BaseController
         //echo $_SERVER["REQUEST_METHOD"];
     }
 
-    function resize_image($file, $w, $h, $crop = FALSE)
+    function resize_image($s, $w, $h, $crop = false, $d = null)
     {
-        $ext =  pathinfo($file, PATHINFO_EXTENSION);
-        list($width, $height) = getimagesize($file);
+        $ext =  pathinfo($s, PATHINFO_EXTENSION);
+        list($width, $height) = getimagesize($s);
         if ($width > $w || $height >> $h) {
             if ($w > 0 && $h > 0) {
                 $r = $width / $height;
@@ -36,21 +36,22 @@ class ImageController extends BaseController
         $imgResized = null;
         switch ($ext) {
             case 'jpg':
-                $src = imagecreatefromjpeg($file);
+                $src = imagecreatefromjpeg($s);
                 $imgResized = imagescale($src,  (int) $width, (int) $height);
-                imagejpeg($imgResized);
+                imagejpeg($imgResized, $d);
                 break;
             case 'png':
-                $src = imagecreatefrompng($file);
+                $src = imagecreatefrompng($s);
                 $imgResized = imagescale($src,  (int) $width, (int) $height);
-                imagepng($imgResized);
+                imagepng($imgResized, $d);
                 break;
             default:
         }
         ob_start(); //Turn on output buffering
         $output = ob_get_contents(); // get the image as a string in a variable
         ob_end_clean(); //Turn off output buffering and clean it
-        return strlen($output); //size in bytes
+        //return strlen($output); //size in bytes
+        return $output; //size in bytes
     }
 
     public function thumbnail()

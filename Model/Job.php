@@ -37,6 +37,14 @@ class Job
         $database = new DatabaseController();
         return $database->execute(sprintf($sql, $$jId));
     }
+    function get_job_detail_by_jobid_and_employeeid(String $jId, String $eId){
+        $filename = ROOT_PATH . "/Sql/GetJobDetail_JobId_EmployeeId.sql";
+        $array = explode("\n", file_get_contents($filename));
+        $sql = str_replace(array('{0}', '{1}'), array($jId, $eId), implode(chr(10), $array));
+
+        $database = new DatabaseController();
+        return $database->execute($sql);
+    }
 
     function get_notify_list($eId)
     {
