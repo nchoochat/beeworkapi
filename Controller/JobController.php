@@ -32,9 +32,9 @@ class JobController extends BaseController
             $jobInfo->notify_date = "";
             $jobInfo->accept_date = "";
             $jobInfo->update_date = "";
-            file_put_contents("${filePath}/${fileName}", json_encode($jobInfo, JSON_PRETTY_PRINT));
+            file_put_contents("$filePath/$fileName", json_encode($jobInfo, JSON_PRETTY_PRINT));
         }
-        chmod("${filePath}/${fileName}", 0777);
+        chmod("$filePath/$fileName", 0777);
     }
 
     public function fileperm()
@@ -63,6 +63,7 @@ class JobController extends BaseController
                     array('Content-Type: application/json')
                 );
             } else {
+                (new LogsController)->write('INTERNAL_SERVER_ERROR', implode(" ", $lastError));
                 $this->send(
                     $this::INTERNAL_SERVER_ERROR,
                     json_encode($this->result((string)$this::INTERNAL_SERVER_ERROR, WEB_PATH_PHOTO)),
@@ -71,6 +72,7 @@ class JobController extends BaseController
             }
         } catch (\Throwable $th) {
             //throw $th;
+            (new LogsController)->write('INTERNAL_SERVER_ERROR', $th->getMessage());
             $this->send(
                 $this::INTERNAL_SERVER_ERROR,
                 json_encode($this->result((string)$this::INTERNAL_SERVER_ERROR, $th->getMessage())),
@@ -78,11 +80,12 @@ class JobController extends BaseController
             );
         }
     }
+
     public function list()
     {
         if ($_SERVER["REQUEST_METHOD"] == "GET") {
             try {
-                $jobList = (new Job)->get_job_list($_GET["eId"]);
+                $jobList = (new Job)->get_list($_GET["eId"]);
                 $eId = $_GET["eId"] == "all" ? "" : $_GET["eId"];
                 for ($i = 0; $i < count($jobList); $i++) {
                     $element = $jobList[$i];
@@ -108,12 +111,28 @@ class JobController extends BaseController
         }
     }
 
+    public function history()
+    {
+        if ($_SERVER["REQUEST_METHOD"] == "GET") {
+            try {
+                $jobList = (new Job)->get_history($_GET["eId"], $_GET["cId"], $_GET["sd"], $_GET["ed"], $_GET["js"], $_GET["bNo"]);
+                $this->send(
+                    $this::OK,
+                    json_encode(array_values($jobList), JSON_UNESCAPED_UNICODE),
+                    array('Content-Type: application/json; charset=utf-8')
+                );
+            } catch (\Throwable $th) {
+                throw $th;
+            }
+        }
+    }
+
     public function work()
     {
         if ($_SERVER["REQUEST_METHOD"] == "GET") {
             try {
 
-                $jobList = (new Job)->get_job_work();
+                $jobList = (new Job)->get_work();
                 for ($i = 0; $i < count($jobList); $i++) {
                     $el = $jobList[$i];
                     $eId = $el["EmployeeId"];
@@ -160,14 +179,14 @@ class JobController extends BaseController
         if ($_SERVER["REQUEST_METHOD"] == "GET") {
             try {
                 $date = new DateTime();
-                $jobList = (new Job)->get_job_list($_GET["eId"]);
+                $jobList = (new Job)->get_list($_GET["eId"]);
                 for ($i = 0; $i < count($jobList); $i++) {
                     $el = $jobList[$i];
                     $this->prepareInfo($_GET["eId"], $el["JobId"]);
                     if (file_exists(WEB_PATH_PHOTO . "/" . $el["JobId"] . "/" . $_GET["eId"] . ".txt")) {
                         $filePath = WEB_PATH_PHOTO . "/" . $el["JobId"];
                         $fileName = sprintf('%s.txt', $_GET["eId"]);
-                        $contentArray = file("${filePath}/${fileName}", FILE_IGNORE_NEW_LINES);
+                        $contentArray = file("$filePath/$fileName", FILE_IGNORE_NEW_LINES);
                         if (count($contentArray) >= 2) {
                             $notify = explode("=", $contentArray[0]);
                             $accept = explode("=", $contentArray[1]);
@@ -177,7 +196,7 @@ class JobController extends BaseController
                         if ($jobList[$i]['NotifyDate'] == '') {
                             $date = new DateTime();
                             $notify = "notify_date=" . $date->format('Y-m-d H:i:s');
-                            $filehandler = fopen("${filePath}/${fileName}", 'r+');
+                            $filehandler = fopen("$filePath/$fileName", 'r+');
                             $contents = $notify . PHP_EOL . $contentArray[1];
                             fwrite($filehandler, $contents);
                             fclose($filehandler);
@@ -209,10 +228,9 @@ class JobController extends BaseController
             $date = new DateTime();
             for ($i = 0; $i < count($jobList); $i++) {
                 $el = $jobList[$i];
+
                 // Get notify token
                 try {
-                    // $eId = $_POST["eId"];
-                    // $token = $_POST["token"];
                     $files = scandir(WEB_PATH_USER);
                     $fileName = "";
                     $found = false;
@@ -236,8 +254,8 @@ class JobController extends BaseController
                 if (file_exists(WEB_PATH_PHOTO . "/" . $el["JobId"] . "/" . $el["EmployeeId"] . ".txt")) {
                     $filePath = WEB_PATH_PHOTO . "/" . $el["JobId"];
                     $fileName = sprintf('%s.txt', $el["EmployeeId"],);
-                    //$content = file("${filePath}/${fileName}", FILE_IGNORE_NEW_LINES);
-                    $content = file_get_contents("${filePath}/${fileName}");
+                    //$content = file("$filePath/$fileName", FILE_IGNORE_NEW_LINES);
+                    $content = file_get_contents("$filePath/$fileName");
 
                     if ($content) {
                         $jobInfo = json_decode($content);
@@ -278,7 +296,7 @@ class JobController extends BaseController
                             sleep(1); // Wait 1 second 
                         }
                         $jobInfo->update_date = $el["UpdateDate"];
-                        $filehandler = fopen("${filePath}/${fileName}", 'w');
+                        $filehandler = fopen("$filePath/$fileName", 'w');
                         $contents = json_encode($jobInfo);
                         fwrite($filehandler, $contents);
                         fclose($filehandler);
@@ -294,14 +312,14 @@ class JobController extends BaseController
     {
         if ($_SERVER["REQUEST_METHOD"] == "GET") {
             try {
-                $jobList = (new Job)->get_job_list($_GET["eId"]);
+                $jobList = (new Job)->get_list($_GET["eId"]);
                 for ($i = 0; $i < count($jobList); $i++) {
                     $el = $jobList[$i];
                     $this->prepareInfo($_GET["eId"], $el["JobId"]);
                     if (file_exists(WEB_PATH_PHOTO . "/" . $el["JobId"] . "/" . $_GET["eId"] . ".txt")) {
                         $filePath = WEB_PATH_PHOTO . "/" . $el["JobId"];
                         $fileName = sprintf('%s.txt', $_GET["eId"]);
-                        $content = file_get_contents("${filePath}/${fileName}");
+                        $content = file_get_contents("$filePath/$fileName");
                         if ($content) {
                             $jsonObj = json_decode($content);
                             $jobList[$i]['NotifyDate'] = $jsonObj->notify_date;
@@ -326,24 +344,17 @@ class JobController extends BaseController
 
     public function accept()
     {
-        // if (!file_exists(WEB_PATH_PHOTO . "/" . $_GET["jId"])) {
-        //     mkdir(WEB_PATH_PHOTO . "/" . $_GET["jId"]);
-        // }
         $this->prepareInfo($_GET["eId"], $_GET["jId"]);
         $date = new DateTime();
         if (file_exists(WEB_PATH_PHOTO . "/" . $_GET["jId"]) . "/" . $_GET["eId"] . ".txt") {
             $filePath = WEB_PATH_PHOTO . "/" . $_GET["jId"];
             $fileName = sprintf('%s.txt', $_GET["eId"]);
-            $content = file_get_contents("${filePath}/${fileName}");
+            $content = file_get_contents("$filePath/$fileName");
             if ($content) {
                 $jobInfo = json_decode($content);
                 $jobInfo->accept_date = $date->format('Y-m-d H:i:s');
-                //$filehandler = fopen("${filePath}\\${fileName}", 'w');
                 $contents = json_encode($jobInfo, JSON_PRETTY_PRINT);
-                //print_r($contents);
                 file_put_contents($filePath . "/" . $fileName, $contents);
-                //fwrite($filehandler, $contents);
-                //fclose($filehandler);
             }
         }
         $this->send(
@@ -361,7 +372,7 @@ class JobController extends BaseController
                 $numOfPendingWork = 0;
                 $numOfPendingClose = 0;
 
-                $jobList = (new Job)->get_job_list($_GET["eId"]);
+                $jobList = (new Job)->get_list($_GET["eId"]);
                 foreach ($jobList as $key => $element) {
                     $foud = false;
                     if (file_exists(WEB_PATH_PHOTO . "/" . $element["JobId"])) {
@@ -397,11 +408,20 @@ class JobController extends BaseController
     {
         if ($_SERVER["REQUEST_METHOD"] == "GET") {
             try {
-                $jobDetail = (new Job)->get_job_list($_GET["jId"]);
-                $this->send(
-                    json_encode(array_values($jobDetail), JSON_UNESCAPED_UNICODE),
-                    array('Content-Type: application/json; charset=utf-8')
-                );
+                $result = (new Job)->get_detail($_GET["jId"]);
+                if (count($result) > 0) {
+                    $this->send(
+                        $this::OK,
+                        json_encode($result[0], JSON_UNESCAPED_UNICODE),
+                        array('Content-Type: application/json; charset=utf-8')
+                    );
+                } else {
+                    $this->send(
+                        $this::BAD_REQUEST,
+                        json_encode($this->badrequest('Invalid profile for employee id ' . $_GET["eId"])),
+                        array('Content-Type: application/json')
+                    );
+                }
             } catch (\Throwable $th) {
                 throw $th;
             }
@@ -469,41 +489,41 @@ class JobController extends BaseController
                 $filePath = WEB_PATH_PHOTO . "/" . $jId;
                 $fileName = sprintf('%s_%s', $eId, $date->format('YmdHis'));
                 $base64_string = $_POST["image"];
-                $filehandler = fopen("${filePath}/${fileName}", 'wb');
+                $filehandler = fopen("$filePath/$fileName", 'wb');
                 fwrite($filehandler, base64_decode($base64_string));
                 fclose($filehandler);
-                $mimeFile = (mime_content_type("${filePath}/${fileName}"));
+                $mimeFile = (mime_content_type("$filePath/$fileName"));
 
                 switch ($mimeFile) {
                     case 'image/png':
-                        rename("${filePath}/${fileName}", "${filePath}/${fileName}.png");
-                        $filePath = "${filePath}/${fileName}.png";
+                        rename("$filePath/$fileName", "$filePath/$fileName.png");
+                        $filePath = "$filePath/$fileName.png";
                         break;
                     case 'image/jpeg':
-                        rename("${filePath}/${fileName}", "${filePath}/${fileName}.jpg");
-                        $filePath = "${filePath}/${fileName}.jpg";
+                        rename("$filePath/$fileName", "$filePath/$fileName.jpg");
+                        $filePath = "$filePath/$fileName.jpg";
                         break;
                     default:
-                        rename("${filePath}/${fileName}", "${filePath}/${fileName}.tmp");
+                        rename("$filePath/$fileName", "$filePath/$fileName.tmp");
                         $filePath = "";
                 }
 
                 //- send to line application
-                try {
-                    //code...
-                    $jobDetail = (new Job)->get_job_detail_by_jobid_and_employeeid($jId, $eId);
-                    for ($i = 0; $i < count($jobDetail); $i++) {
-                        $el = $jobDetail[$i];
-                        $msg = "";
-                        $msg = $msg .  "อัพโหลดงาน  " . $jId . "\n";
-                        $msg = $msg .  "ลูกค้า: " . $el["CustomerName"] . "\n";
-                        $msg = $msg .  "พนักงาน: " . $el["Fullname"] . " (" . $eId .  ")\n";
-                        $this->photo2line($msg, $filePath, 'line_' . $jId);
-                    }
-                } catch (\Throwable $th) {
-                    //throw $th;
-                    (new LogsController)->write('error line ' . $th->getMessage());
-                }
+                // try {
+                //     //code...
+                //     $jobDetail = (new Job)->get_detail_by_eId($jId, $eId);
+                //     for ($i = 0; $i < count($jobDetail); $i++) {
+                //         $el = $jobDetail[$i];
+                //         $msg = "";
+                //         $msg = $msg .  $el["JobType"] . " (" . $jId . ")\n";
+                //         $msg = $msg .  "ลูกค้า: " . $el["CustomerName"] . "\n";
+                //         $msg = $msg .  "พนักงาน: " . $el["Fullname"] . " (" . $eId .  ")\n";
+                //         $this->send2line($msg, $filePath, 'line_' . $jId);
+                //     }
+                // } catch (\Throwable $th) {
+                //     //throw $th;
+                //     (new LogsController)->write('error line ' . $th->getMessage());
+                // }
 
                 $this->send(
                     $this::OK,
@@ -519,7 +539,7 @@ class JobController extends BaseController
             }
         } catch (\Throwable $th) {
             //throw $th;
-            (new LogsController)->write('error' . $th->getMessage());
+            (new LogsController)->write('INTERNAL_SERVER_ERROR' , $th->getMessage());
         }
     }
 
@@ -587,7 +607,7 @@ class JobController extends BaseController
         imagettftext($im, $font_size, 0, intval($text_x), intval($text_y), $black, $font, $msg);
 
         // Using imagepng() results in clearer text compared with imagejpeg()
-        imagepng($im, "${filePath}/${fileName}");
+        imagepng($im, "$filePath/$fileName");
         imagedestroy($im);
 
         header_remove('Content-Type');
@@ -598,36 +618,28 @@ class JobController extends BaseController
         );
     }
 
-    function photo2line(String $messaage, String $file_path, String $resizePrefix)
+    function send2line(String $messaage, String $file_path, String $resizePrefix)
     {
+        //echo $messaage;
         if (APP_LINE_TOKEN != '') {
             try {
                 if (!file_exists(ROOT_PATH . '/Data/Temp')) {
                     mkdir(ROOT_PATH . '/Data/Temp', 0777);
                     chmod(ROOT_PATH . '/Data/Temp', 0777);
                 }
+                $data = array('message' => $messaage);
                 //code...
-
-                $fileName = ROOT_PATH . '/Data/Temp/' . $resizePrefix . '_' . pathinfo($file_path, PATHINFO_FILENAME) . '.' . pathinfo($file_path, PATHINFO_EXTENSION);
-
-
-                //-- {ชื่อพนักงาน} ส่งรูปงาน {หมายเลขงาน} 
-                //$mymessage = "เรื่อง: ทดสอบส่งข้อความ"; //Set new line with '\n'
-
-                (new ImageController())->resize_image($file_path, 4096, 4096, false, $fileName);
-                $imageFile = new CURLFILE($fileName); // Local Image file Path  
-                // $filehandler = fopen(WEB_PATH_PHOTO . '/' . $fileName, 'wb');
-                // fwrite($filehandler,  base64_decode($imageResize));
-                // fclose($filehandler);
-
-                //$result = (new ImageController())->resize_image($file_path,2048, 2048, false);
-                //$sticker_package_id = '2';  // Package ID sticker
-                //$sticker_id = '34';    // ID sticker
-                $data = array(
-                    'message' => $messaage,
-                    'imageFile' => $imageFile,
-                    'imageFile2' => $imageFile
-                );
+                (string) $fileName = "";
+                if ($file_path != "") {
+                    $fileName = ROOT_PATH . '/Data/Temp/' . $resizePrefix . '_' . pathinfo($file_path, PATHINFO_FILENAME) . '.' . pathinfo($file_path, PATHINFO_EXTENSION);
+                    (new ImageController())->resize_image($file_path, 4096, 4096, false, $fileName);
+                    $imageFile = new CURLFILE($fileName); // Local Image file Path  
+                    $data = array(
+                        'message' => $messaage,
+                        'imageFile' => $imageFile,
+                    );
+                    //print($fileName);
+                }
 
                 $chOne = curl_init();
                 curl_setopt($chOne, CURLOPT_URL, "https://notify-api.line.me/api/notify");
@@ -641,6 +653,7 @@ class JobController extends BaseController
                 curl_setopt($chOne, CURLOPT_RETURNTRANSFER, 1);
                 curl_setopt($chOne, CURLOPT_BUFFERSIZE, 10485764);
                 $result = curl_exec($chOne);
+
                 //Check error
                 $return = '';
                 if (curl_error($chOne)) {
@@ -648,12 +661,64 @@ class JobController extends BaseController
                 } else {
                     $return = json_decode($result, true);
                 }
+
                 //Close connection
                 curl_close($chOne);
                 return $return;
             } catch (\Throwable $th) {
                 //throw $th;
-                (new LogsController)->write($th->getMessage());
+                (new LogsController)->write('INTERNAL_SERVER_ERROR', $th->getMessage());
+                return $th->getMessage();
+            }
+        }
+    }
+
+    function job2line()
+    {
+        if (APP_LINE_TOKEN != '') {
+            try {
+                if (!file_exists(ROOT_PATH . '/Data/Temp')) {
+                    mkdir(ROOT_PATH . '/Data/Temp', 0777);
+                    chmod(ROOT_PATH . '/Data/Temp', 0777);
+                }
+
+                //code...
+                $jId = $_GET["jId"];
+                $eId = $_GET["eId"] == "all" ? "" : $_GET["eId"];
+
+                $litOfAttachFile = array();
+                if (file_exists(WEB_PATH_PHOTO . "/" . $jId)) {
+                    $files = scandir(WEB_PATH_PHOTO . "/" . $jId);
+                    foreach ($files as $fineIndex => $fileName) {
+                        if (pathinfo($fileName, PATHINFO_EXTENSION) != 'txt') {
+                            if (strpos($fileName, $eId . '_') !== false) {
+                                array_push($litOfAttachFile, $fileName);
+                            }
+                        }
+                    }
+                }
+
+                if (count($litOfAttachFile) <> 0) {
+                    $jobDetail = (new Job)->get_detail_by_eId($jId, $eId);
+                    $msg = "";
+                    for ($i = 0; $i < count($jobDetail); $i++) {
+                        $el = $jobDetail[$i];
+                        $msg = $msg .  $el["JobType"] . " (" . $jId . ")\n";
+                        $msg = $msg .  "ลูกค้า: " . $el["CustomerName"] . "\n";
+                        $msg = $msg .  "พนักงาน: " . $el["Fullname"] . " (" . $eId .  ")\n";
+                        $msg = $msg .  "จำนวนรูป: " . count($litOfAttachFile);
+                    }
+
+                    $this->send2line($msg, "", 'line_' . $jId);
+
+                    foreach ($litOfAttachFile as $fineIndex => $fileName) {
+                        $s_file = WEB_PATH_PHOTO . "/" . $jId . "/" . $fileName;
+                        //echo $s_file . ":" . (string)($fineIndex + 1);
+                        $this->send2line((string)($fineIndex + 1), $s_file, 'line_' . $jId);
+                    }
+                }
+            } catch (\Throwable $th) {
+                (new LogsController)->write('INTERNAL_SERVER_ERROR', $th->getMessage());
                 return $th->getMessage();
             }
         }

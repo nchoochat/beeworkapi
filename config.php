@@ -13,6 +13,7 @@ define('WEB_ROOT', 'beeworkapi');
 //define("WEB_PATH_ATTACH_FILE", "Z:\\\\JobAttachment");
 define("WEB_PATH_USER", ROOT_PATH . "/Data/User");
 define("WEB_PATH_PHOTO", ROOT_PATH . "/Data/JobPhoto");
+define("WEB_PATH_LOGS", ROOT_PATH . "/Data/Logs");
 define("WEB_PATH_PHOTO_COMPLETE", ROOT_PATH . "/Data/JobPhoto");
 
 define("APP_LINE_TOKEN", "EWHWv5bHh7MOMuH5QywssYpGmEiDGkhJUxmBbETuhyF");

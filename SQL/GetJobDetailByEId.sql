@@ -1,9 +1,10 @@
 SELECT
 	CONVERT(j.JobSequence, CHAR) AS JobId,
+	jt.Name AS JobType,
 	c.CustomerId,
-    c.Name AS CustomerName,
-    e.EmployeeId,
-    e.Name AS Fullname
+	c.Name AS CustomerName,
+	e.EmployeeId,
+	e.Name AS Fullname
 FROM (
     SELECT j.JobID, MAX(j.TimeStamp) AS LastUpdate
     FROM job j
@@ -11,6 +12,7 @@ FROM (
     GROUP BY JobSequence
 )jx
 INNER JOIN job j ON j.JobId = jx.JobID AND j.TimeStamp = jx.LastUpdate
+INNER JOIN job_type jt ON jt.JobTypeId = j.JobTypeId
 INNER JOIN customer c ON c.CustomerId = j.CustomerId
 INNER JOIN job_emp je ON je.JobId = j.JobId
 INNER JOIN employee e ON e.EmployeeId = je.EmployeeId

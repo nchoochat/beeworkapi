@@ -14,27 +14,30 @@ class LogsController extends BaseController
     }
     function save()
     {
-        if (!file_exists(WEB_PATH_PHOTO)) {
-            mkdir(WEB_PATH_PHOTO);
+        if (!file_exists(ROOT_PATH . '/Data/Logs')) {
+            mkdir(ROOT_PATH . '/Data/Logs', 0777);
+            chmod(ROOT_PATH . '/Data/Logs', 0777);
         }
         $date = new DateTime();
-        $filePath = WEB_PATH_PHOTO . "\\";
+        $filePath = ROOT_PATH . '/Data/Logs';
         $fileName = 'log-' . $date->format('Y-m-d') . '.txt';
-        $filehandler = fopen("${filePath}\\${fileName}", 'a+');
-        fwrite($filehandler, str_replace(array('{0}', '{1}', '{2}'), array($date->format('Y-m-d H:i:s'), $_POST['title'], $_POST['detail']), "[{0}]{1}:{2}" . PHP_EOL));
+        $filehandler = fopen("{$filePath}/{$fileName}", 'a+');
+        fwrite($filehandler, str_replace(array('{0}', '{1}', '{2}'), array($date->format('Y-m-d H:i:s.ms'), $_POST['title'], $_POST['detail']), "[{0}]{1}: {2}" . PHP_EOL));
         fclose($filehandler);
     }
 
-    function write($msg)
+    function write($type, $msg)
     {
-        if (!file_exists(WEB_PATH_USER)) {
-            mkdir(WEB_PATH_USER);
+        if (!file_exists(ROOT_PATH . '/Data/Logs')) {
+            mkdir(ROOT_PATH . '/Data/Logs', 0777);
+            chmod(ROOT_PATH . '/Data/Logs', 0777);
         }
+
         $date = new DateTime();
-        $filePath = WEB_PATH_USER . "\\";
+        $filePath = ROOT_PATH . '/Data/Logs';
         $fileName = 'log-' . $date->format('Y-m-d') . '.txt';
-        $filehandler = fopen("${filePath}\\${fileName}", 'a+');
-        fwrite($filehandler, str_replace(array('{0}', '{1}', '{2}'), array($date->format('Y-m-d H:i:s'), 'internal error', $msg), "[{0}]{1}:{2}" . PHP_EOL));
+        $filehandler = fopen("{$filePath}/{$fileName}", 'a+');
+        fwrite($filehandler, str_replace(array('{0}', '{1}', '{2}'), array($date->format('Y-m-d H:i:s.ms'), $type, $msg), "[{0}]{1}: {2}" . PHP_EOL));
         fclose($filehandler);
     }
 }

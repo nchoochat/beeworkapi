@@ -4,8 +4,9 @@
 // dns_get_record("php.net", DNS_ANY, $authns, $addtl);
 // restore_error_handler();
 require_once ROOT_PATH . "/Model/Employee.php";
+require_once ROOT_PATH . "/Controller/LogsController.php";
 
-class UserController extends BaseController
+class EmployeeController extends BaseController
 {
     function __construct()
     {
@@ -80,12 +81,15 @@ class UserController extends BaseController
                         if ($objAuthen->pwd == md5(base64_decode($authUser->p))) {
                             $result = new stdClass();
                             $result->employeeId = (string)$eId;
+                            (new LogsController)->write('AUTHEN_COMPLETE', base64_decode($authUser->u));
                             $this->send(
                                 $this::OK,
                                 json_encode($result),
                                 array('Content-Type: application/json')
                             );
+                            
                         } else {
+                            (new LogsController)->write('AUTHEN_Faield', base64_decode($authUser->u));
                             $this->send(
                                 $this::BAD_REQUEST,
                                 json_encode($this->result('400', 'Invalid username or password')),
@@ -93,6 +97,7 @@ class UserController extends BaseController
                             );
                         }
                     } else {
+                        (new LogsController)->write('AUTHEN_Faield', base64_decode($authUser->u));
                         $this->send(
                             $this::BAD_REQUEST,
                             json_encode($this->result('400', 'Invalid username or password')),
@@ -101,6 +106,7 @@ class UserController extends BaseController
                     }
                 }
             } catch (Exception $e) {
+                (new LogsController)->write('INTERNAL_SERVER_ERROR', $e->getMessage());
                 $this->send(
                     $this::INTERNAL_SERVER_ERROR,
                     $this->result($this::INTERNAL_SERVER_ERROR, $e->getMessage()),
@@ -116,7 +122,7 @@ class UserController extends BaseController
             //code...
 
             if ($_SERVER["REQUEST_METHOD"] == "GET") {
-                $result = (new EmployeeModel())->get_profile($_GET["eId"]);
+                $result = (new Employee())->get_profile($_GET["eId"]);
 
                 if (count($result) > 0) {
                     $obj = new stdClass;
@@ -353,7 +359,7 @@ class UserController extends BaseController
 
         try {
             if ($_SERVER["REQUEST_METHOD"] == "POST") {
-                $objProfile = (new EmployeeModel())->get_profile($_POST["eId"]);
+                $objProfile = (new Employee())->get_profile($_POST["eId"]);
                 if (count($objProfile) > 0) {
                     $f_emp = "a" . $_POST["eId"] . "-" .  $_POST["username"] . ".json";
                     $files = scandir(WEB_PATH_USER);
@@ -406,6 +412,21 @@ class UserController extends BaseController
                 $this->result($this::INTERNAL_SERVER_ERROR, $th->getMessage()),
                 array('Content-Type: application/json')
             );
+        }
+    }
+
+    public function list(){
+        if ($_SERVER["REQUEST_METHOD"] == "GET") {
+            try {
+                $jobList = (new Employee())->get_list();                
+                $this->send(
+                    $this::OK,
+                    json_encode(array_values($jobList), JSON_UNESCAPED_UNICODE),
+                    array('Content-Type: application/json; charset=utf-8')
+                );
+            } catch (\Throwable $th) {
+                throw $th;
+            }
         }
     }
 }

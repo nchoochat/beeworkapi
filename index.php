@@ -14,10 +14,19 @@ if (!isset($uri[2])) {
 
 $realm = 'Restricted area';
 switch (strtolower($uri[2])) {
+    case 'customer':
+        if (!empty($_SERVER['PHP_AUTH_DIGEST'])) {
+            require ROOT_PATH . "/Controller/CustomerController.php";
+            $objFeedController = new CustomerController();
+            $objFeedController->{$uri[3]}();
+        } else {
+            header('HTTP/1.1 401 Unauthorized');
+        }
+        break;
     case 'employee':
         if (!empty($_SERVER['PHP_AUTH_DIGEST'])) {
             require ROOT_PATH . "/Controller/EmployeeController.php";
-            $objFeedController = new UserController();
+            $objFeedController = new EmployeeController();
             if (method_exists($objFeedController, $uri[3]))
                 $objFeedController->{$uri[3]}();
             else

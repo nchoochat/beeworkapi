@@ -69,8 +69,8 @@ class NotifyController extends BaseController
                         if (file_exists(WEB_PATH_PHOTO . "/" . $el["JobId"] . "/" . $el["EmployeeId"] . ".txt")) {
                             $filePath = WEB_PATH_PHOTO . "/" . $el["JobId"];
                             $fileName = sprintf('%s.txt', $el["EmployeeId"],);
-                            //$content = file("${filePath}/${fileName}", FILE_IGNORE_NEW_LINES);
-                            $content = file_get_contents("${filePath}/${fileName}");
+                            //$content = file("$filePath/$fileName", FILE_IGNORE_NEW_LINES);
+                            $content = file_get_contents("$filePath/$fileName");
                             $notifyType = "";
                             if ($content) {
                                 $jobInfo = json_decode($content);

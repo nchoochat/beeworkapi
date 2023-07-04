@@ -59,7 +59,7 @@ class ImageController extends BaseController
         $jId = $_GET["jId"];
         $fId = $_GET["fId"];
         try {
-            $ext =  pathinfo(WEB_PATH_PHOTO . "/${jId}/${fId}", PATHINFO_EXTENSION);
+            $ext =  pathinfo(WEB_PATH_PHOTO . "/$jId/$fId", PATHINFO_EXTENSION);
             switch ($ext) {
                 case 'jpg':
                     header("Content-type: image/jpeg");
@@ -69,7 +69,7 @@ class ImageController extends BaseController
                     break;
                 default:
             }
-            echo $this->resize_image(WEB_PATH_PHOTO . "/${jId}/${fId}", 150, 150, false);
+            echo $this->resize_image(WEB_PATH_PHOTO . "/$jId/$fId", 150, 150, false);
         } catch (\Throwable $th) {
             throw $th;
         }
@@ -80,7 +80,7 @@ class ImageController extends BaseController
         $jId = $_GET["jId"];
         $fId = $_GET["fId"];
         try {
-            $ext =  pathinfo(WEB_PATH_PHOTO . "/${jId}/${fId}", PATHINFO_EXTENSION);
+            $ext =  pathinfo(WEB_PATH_PHOTO . "/$jId/$fId", PATHINFO_EXTENSION);
             switch ($ext) {
                 case 'jpg':
                     header("Content-type: image/jpeg");
@@ -90,7 +90,7 @@ class ImageController extends BaseController
                     break;
                 default:
             }
-            echo $this->resize_image(WEB_PATH_PHOTO . "/${jId}/${fId}", null, null, false);
+            echo $this->resize_image(WEB_PATH_PHOTO . "/$jId/$fId", null, null, false);
         } catch (\Throwable $th) {
             print_r('sssssssssssssss');
             throw $th;

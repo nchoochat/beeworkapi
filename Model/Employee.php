@@ -1,22 +1,22 @@
 <?php
 //require_once PROJECT_ROOT_PATH . "/Controller/DatabaseController.php";
 
-class EmployeeModel
+class Employee
 {
     
     function __construct(){
 
     }
 
-    function get_employee_id($user, $pwd)
-    {
-        $filename = ROOT_PATH . "/Sql/GetEmployeeId.sql";
-        $array = explode("\n", file_get_contents($filename));
-        $sql = (implode(chr(10), $array));
+    // function get_employee_id($user, $pwd)
+    // {
+    //     $filename = ROOT_PATH . "/Sql/GetEmployeeId.sql";
+    //     $array = explode("\n", file_get_contents($filename));
+    //     $sql = (implode(chr(10), $array));
 
-        $database = new DatabaseController();
-        return $database->executeScalar(sprintf($sql, $user, $pwd));
-    }
+    //     $database = new DatabaseController();
+    //     return $database->executeScalar(sprintf($sql, $user, $pwd));
+    // }
 
     function get_profile($eId)
     {
@@ -38,5 +38,14 @@ class EmployeeModel
         $database = new DatabaseController();
         return $database->executeNonQuery(sprintf($sql, $token, $eId)) > 0;
 
+    }
+    
+    function get_list(){
+        $filename = ROOT_PATH . "/Sql/GetEmployeeList.sql";
+        $array = explode("\n", file_get_contents($filename));
+        $sql = implode(chr(10), $array);
+        
+        $database = new DatabaseController();
+        return $database->execute($sql);
     }
 }
